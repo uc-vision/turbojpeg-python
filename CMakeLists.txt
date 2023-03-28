@@ -7,7 +7,7 @@ project(turbojpeg_python)
 ExternalProject_Add(libjpeg-turbo
   SOURCE_DIR ${CMAKE_SOURCE_DIR}/libjpeg-turbo
   STEP_TARGETS build
-  CONFIGURE_COMMAND ${CMAKE_COMMAND} . -DCMAKE_POSITION_INDEPENDENT_CODE=ON
+  CONFIGURE_COMMAND ${CMAKE_COMMAND} -S ${CMAKE_SOURCE_DIR}/libjpeg-turbo -B . -DCMAKE_POSITION_INDEPENDENT_CODE=ON
   EXCLUDE_FROM_ALL TRUE
   INSTALL_COMMAND cmake -E echo "Skipping install step."
 )
