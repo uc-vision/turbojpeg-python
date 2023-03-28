@@ -46,15 +46,15 @@ class CMakeBuild(build_ext):
 # The information here can also be placed in setup.cfg - better separation of
 # logic and declaration, and simpler if you include description/version in a file.
 setup(
-    name="turbojpeg",
+    name="turbojpeg-python",
     version="0.0.1",
-    author="Casey Peat",
-    author_email="caseypeat@protonmail.com",
-    description="A python binding for jxl encoding",
+    author="Oliver Batchelor",
+    author_email="oliver.batchelor@canterbury.ac.nz",
+    description="TurboJPEG v3 bindings for 12 and 16 bit encoding",
     long_description="",
-    ext_modules=[CMakeExtension("turbojpeg")],
+    ext_modules=[CMakeExtension("turbojpeg_python")],
     cmdclass={"build_ext": CMakeBuild},
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
