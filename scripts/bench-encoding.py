@@ -120,7 +120,7 @@ def main(args):
   images = [image] * args.n
   num_threads = args.j
 
-  image12 = image.astype(np.int16)
+  image12 = image.astype(np.int16) * 16
   images12 = [image12] * args.n
 
 
