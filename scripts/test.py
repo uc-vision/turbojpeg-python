@@ -17,7 +17,8 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
 
-  image = cv2.imread(args.input, cv2.IMREAD_UNCHANGED)
+  image = cv2.imread(args.input, cv2.IMREAD_COLOR)
+  image12 = image.astype(np.int16) * 16
   jpeg = Jpeg()
 
 
@@ -33,25 +34,29 @@ if __name__ == "__main__":
 
   #   print(f"Written to {args.write}")
 
-  result12 = jpeg.encode12(image.astype(np.int16) * 16, quality=94, format=Jpeg.BGR, chroma=Jpeg.CHROMA_422)
-  print(f"Encoded 12-bit size: {len(result12)}")
-  
-  decoded12 = jpeg.decode(result12, format=Jpeg.BGR)
-  display((decoded12 // 16).astype(np.uint8))
-
-  
-
   result8 = jpeg.encode8(image, quality=94, format=Jpeg.BGR, chroma=Jpeg.CHROMA_422)
   print(f"Encoded 8-bit size: {len(result8)}")
 
+  result12 = jpeg.encode12(image12, quality=94, format=Jpeg.BGR, chroma=Jpeg.CHROMA_422)
+  print(f"Encoded 12-bit size: {len(result12)}")
+
+
+
+  decoded12 = jpeg.decode(result12, format=Jpeg.BGR)
+  psnr12 = cv2.PSNR(image12, decoded12)
+  print(f"PSNR 12-bit: {psnr12}")
+
   decoded8 = jpeg.decode(result8, format=Jpeg.BGR)
+  psnr8 = cv2.PSNR(image, decoded8)
+  print(f"PSNR 8-bit: {psnr8}")
+
+
   display(decoded8)
+  display((decoded12 // 16).astype(np.uint8))
 
 
+  # decode12 = cv2.imdecode(result12, cv2.IMREAD_UNCHANGED)
 
-  # image2 = cv2.imdecode(result, cv2.IMREAD_UNCHANGED)
-
-  # psnr = cv2.PSNR(image, image2)
   # print("PSNR: ", psnr)
 
   # cv2.imshow("image", image)

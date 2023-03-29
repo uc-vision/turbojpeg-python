@@ -4,6 +4,7 @@ import torch
 
 import cv2
 import time
+import numpy as np
 
 from functools import partial
 
@@ -72,6 +73,15 @@ class EncoderV3:
   def encode(self, image):
     return self.jpeg.encode8(image, quality=self.quality, chroma=self.jpeg.CHROMA_422)
 
+class Encoder12Bit:
+  def __init__(self, quality=90):
+    self.jpeg = turbojpeg_python.Jpeg()
+    self.quality = quality
+
+  def encode(self, image):
+    return self.jpeg.encode12(image, quality=self.quality, chroma=self.jpeg.CHROMA_422)
+
+
 class EncoderTJ:
   def __init__(self, quality=90):
     self.jpeg = turbojpeg.TurboJPEG()
@@ -110,9 +120,14 @@ def main(args):
   images = [image] * args.n
   num_threads = args.j
 
+  image12 = image.astype(np.int16)
+  images12 = [image12] * args.n
+
 
   print(f'turbojpeg threaded j={num_threads}: {bench_threaded(EncoderTJ, args.q, images, num_threads):>5.1f} images/s')
-  print(f'turbojpeg(v3) threaded j={num_threads}: {bench_threaded(EncoderV3, args.q, images, num_threads):>5.1f} images/s')
+  print(f'turbojpegv3 threaded j={num_threads}: {bench_threaded(EncoderV3, args.q, images, num_threads):>5.1f} images/s')
+
+  print(f'turbojpegv3 (12bit) threaded j={num_threads}: {bench_threaded(Encoder12Bit, args.q, images12, num_threads):>5.1f} images/s')
 
 
 if __name__=='__main__':
