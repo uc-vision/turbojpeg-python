@@ -27,6 +27,13 @@ class JpegException : public std::exception {
     }
 };
 
+struct JpegHeader {
+  int width;
+  int height;
+  int precision;
+  TJCS colorspace;
+};
+
 
 
 class Jpeg {
@@ -46,6 +53,7 @@ class Jpeg {
         throw JpegException(context, tj3GetErrorStr(handle));
     }
   }
+  JpegHeader decode_header(py::array_t<uint8_t, py::array::c_style> const& input);
 
 
   py::array_t<uint8_t> encode8(py::array_t<uint8_t, py::array::c_style> const& input, 
@@ -58,7 +66,23 @@ class Jpeg {
 
 };
 
+JpegHeader Jpeg::decode_header(py::array_t<uint8_t, py::array::c_style> const& input) {
+  uint8_t const *data = input.data();
+  size_t size = input.size();
+  
+  py::gil_scoped_release release;
+  check_error("tj3DecompressHeader", tj3DecompressHeader(handle, data, size));
 
+  JpegHeader header;
+
+  header.width = tj3Get(handle, TJPARAM_JPEGWIDTH);
+  header.height = tj3Get(handle, TJPARAM_JPEGHEIGHT);
+
+  header.precision = tj3Get(handle, TJPARAM_PRECISION);
+  header.colorspace = TJCS(tj3Get(handle, TJPARAM_COLORSPACE));
+
+  return header;
+}
 
 
 inline void check_shape(py::array const& input, TJPF format) {
@@ -135,6 +159,7 @@ py::array_t<uint8_t> Jpeg::encode12(py::array_t<int16_t, py::array::c_style> con
     tj3Set(handle, TJPARAM_LOSSLESS, 0);
     tj3Set(handle, TJPARAM_SUBSAMP, chroma);
 
+
     check_error("tj3Compress12", tj3Compress12(handle, data, 
       width, pitch, height, format, &buf_data, &buf_size));
   }
@@ -146,43 +171,34 @@ py::array_t<uint8_t> Jpeg::encode12(py::array_t<int16_t, py::array::c_style> con
   return output;
 }
 
+
+
 py::array Jpeg::decode(py::array_t<uint8_t, py::array::c_style> const& input, TJPF format) {
-  check_error("tj3DecompressHeader", tj3DecompressHeader(handle, input.data(), input.size()));
+  JpegHeader header = decode_header(input);
+  const uint8_t *data = input.data();
+  const size_t size = input.size();
 
-  int width = tj3Get(handle, TJPARAM_JPEGWIDTH);
-  int height = tj3Get(handle, TJPARAM_JPEGHEIGHT);
-
-  int prec = tj3Get(handle, TJPARAM_PRECISION);
-  int colorspace = tj3Get(handle, TJPARAM_COLORSPACE);
-  std::cout << "width: " << width << " height: " << height << " prec: " << prec << std::endl;
-  std::cout << "colorspace: " << colorspace << std::endl;
-
-  if (prec == 8) {
-    py::array_t<uint8_t> output({height, width, 3});
-    output[py::make_tuple(py::ellipsis())] = 0;
-
+  if (header.precision == 8) {
+    py::array_t<uint8_t> output({header.height, header.width, 3});
     size_t pitch = output.strides()[0];
-    check_error("tj3Decompress8",  tj3Decompress8(handle, input.data(), input.size(), 
-      output.mutable_data(), pitch, format));
+    uint8_t *output_data = output.mutable_data();
+    py::gil_scoped_release release;
 
+    check_error("tj3Decompress8",  tj3Decompress8(handle, data, size, output_data, pitch, format));
     return output;
 
-  } else if (prec == 12) {
-    py::array_t<int16_t> output({height, width, 3});
-    output[py::make_tuple(py::ellipsis())] = 0;
-
-
+  } else if (header.precision == 12) {
+    py::array_t<int16_t> output({header.height, header.width, 3});
+    int16_t *output_data = output.mutable_data();
     size_t pitch = output.strides()[0] / sizeof(int16_t);
-    check_error("tj3Decompress12",  tj3Decompress12(handle, input.data(), input.size(), 
-      output.mutable_data(), pitch, format));
 
+    py::gil_scoped_release release;
+    check_error("tj3Decompress12",  tj3Decompress12(handle, data, size, output_data, pitch, format));
 
     return output;
   } else {
     throw std::invalid_argument("only 8/12 bit precision supported");
   }
-
-
 }
 
 
